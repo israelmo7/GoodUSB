@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0b0e14">
+<title>GoodUSB</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <span id="dot" class="dot off"></span>
+  <strong>GoodUSB</strong>
+  <span id="role" class="pill">offline</span>
+  <span id="latency" class="pill">— ms</span>
+  <button id="takeover" class="pill btn hidden">Take over</button>
+  <button id="wakelock" class="pill btn">☀ Keep awake</button>
+</header>
+
+<section id="pairPanel" class="panel hidden">
+  <strong id="pairTitle">Pair this phone</strong>
+  <p id="pairHint">Connecting…</p>
+  <div class="row">
+    <input id="pinInput" type="password" inputmode="numeric" autocomplete="off"
+           placeholder="4–8 digit PIN" maxlength="8">
+    <button id="pinBtn" class="pill btn">Pair</button>
+  </div>
+</section>
+
+<main>
+  <section id="padWrap">
+    <div id="pad">
+      <div id="padHint">touchpad</div>
+      <div id="joyBase" class="hidden"><div id="joyKnob"></div></div>
+    </div>
+    <div id="scrollStrip" title="scroll">⇕</div>
+  </section>
+
+  <section id="mouseBtns">
+    <button data-btn="1" class="mbtn">Left</button>
+    <button data-btn="4" class="mbtn">Mid</button>
+    <button data-btn="2" class="mbtn">Right</button>
+  </section>
+
+  <section class="row toggles">
+    <button id="modeBtn" class="pill btn">Mode: Touchpad</button>
+    <label class="pill"><input type="checkbox" id="tapClick" checked> Tap-click</label>
+    <label class="pill"><input type="checkbox" id="haptics" checked> Haptics</label>
+  </section>
+
+  <section class="sliders">
+    <label>Sensitivity <input id="sens" type="range" min="0.2" max="3" step="0.05" value="1"><span id="sensVal">1.00</span></label>
+    <label>Acceleration <input id="accel" type="range" min="0" max="2" step="0.05" value="0.6"><span id="accelVal">0.60</span></label>
+  </section>
+
+  <section id="templateBar" class="row">
+    <label for="templateSel">Template</label>
+    <select id="templateSel"></select>
+  </section>
+  <section id="templatePanel"></section>
+
+  <details id="settingsPanel">
+    <summary>Device settings</summary>
+    <label>Device name <input id="setDevice" type="text" maxlength="32" placeholder="GoodUSB"></label>
+    <label>Wi-Fi name <input id="setSsid" type="text" maxlength="32" placeholder="Home Wi-Fi"></label>
+    <label>Wi-Fi password <input id="setPass" type="password" maxlength="64" placeholder="(unchanged if blank SSID)"></label>
+    <div class="row">
+      <button id="setSave" class="pill btn">Save &amp; restart device</button>
+      <button id="openPair" class="pill btn">Open pairing window</button>
+    </div>
+    <p class="note">Trusted-user settings: applied on restart, no extra checks. Name becomes the USB + network name, so two GoodUSBs can live on one Wi-Fi.</p>
+  </details>
+</main>
+
+<footer id="health">connecting…</footer>
+<script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,6 @@
+.pio/
+.venv-pio/
+.pio-core/
+src/secrets.h
+*.gz
+.vscode/.browse.c_cpp.db*

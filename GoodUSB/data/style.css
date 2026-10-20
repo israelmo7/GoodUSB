@@ -1,0 +1,86 @@
+/* GoodUSB mobile UI — Safari hardening first: no zoom, no scroll bounce,
+   no callouts; the whole app is one fixed 100dvh column. */
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; }
+body {
+  margin: 0; position: fixed; inset: 0; overflow: hidden;
+  height: 100dvh; display: flex; flex-direction: column;
+  font-family: -apple-system, system-ui, sans-serif;
+  background: #0b0e14; color: #e6e9ef;
+  touch-action: none; overscroll-behavior: none;
+  -webkit-user-select: none; user-select: none;
+  -webkit-touch-callout: none;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right)
+           env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+header {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  padding: 10px 12px 6px;
+}
+.dot { width: 10px; height: 10px; border-radius: 50%; background: #666; }
+.dot.on { background: #3ddc84; } .dot.ctrl { background: #ffb340; }
+.pill {
+  background: #1a2030; border: 1px solid #2a3350; border-radius: 999px;
+  padding: 4px 10px; font-size: 13px; color: #e6e9ef;
+}
+.btn { cursor: pointer; } .hidden { display: none !important; }
+main { flex: 1; display: flex; flex-direction: column; gap: 8px; padding: 6px 12px; min-height: 0; }
+#padWrap { flex: 1; display: flex; gap: 8px; min-height: 180px; }
+#pad {
+  flex: 1; position: relative; border-radius: 16px;
+  background: linear-gradient(160deg, #141a29, #0f1420);
+  border: 1px solid #2a3350; touch-action: none;
+}
+#padHint {
+  position: absolute; inset: 0; display: flex; align-items: center;
+  justify-content: center; color: #44507a; font-size: 14px; pointer-events: none;
+}
+#scrollStrip {
+  width: 44px; border-radius: 12px; background: #141a29;
+  border: 1px solid #2a3350; display: flex; align-items: center;
+  justify-content: center; color: #7c8cba; touch-action: none;
+}
+#joyBase {
+  position: absolute; width: 120px; height: 120px; border-radius: 50%;
+  border: 2px solid #3a4a7a; background: rgba(60,80,160,.15);
+  transform: translate(-50%, -50%); pointer-events: none;
+}
+#joyKnob {
+  position: absolute; width: 52px; height: 52px; border-radius: 50%;
+  background: #3a5bd9; left: 50%; top: 50%; transform: translate(-50%, -50%);
+}
+#mouseBtns { display: flex; gap: 8px; }
+.mbtn {
+  flex: 1; padding: 14px 0; font-size: 15px; border-radius: 12px;
+  background: #1a2030; border: 1px solid #2a3350; color: #e6e9ef; touch-action: none;
+}
+.mbtn:active, .mbtn.held { background: #3a5bd9; }
+.row { display: flex; gap: 8px; align-items: center; }
+.toggles { flex-wrap: wrap; }
+.sliders label { display: flex; align-items: center; gap: 8px; font-size: 13px; margin: 2px 0; }
+.sliders input[type=range] { flex: 1; }
+#templateBar label { font-size: 13px; color: #7c8cba; }
+#templateSel {
+  flex: 1; padding: 9px; border-radius: 10px; border: 1px solid #2a3350;
+  background: #141a29; color: #e6e9ef; font-size: 15px;
+}
+#templatePanel { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.panel {
+  margin: 6px 12px 0; padding: 10px 12px; border-radius: 12px;
+  background: #14202e; border: 1px solid #2a5a80; font-size: 14px;
+}
+.panel p { margin: 6px 0 10px; color: #a9bde0; font-size: 13px; }
+.panel input, #settingsPanel input {
+  flex: 1; padding: 10px; border-radius: 10px; border: 1px solid #2a3350;
+  background: #141a29; color: #e6e9ef; font-size: 16px; /* >=16px stops iOS zoom */
+  -webkit-user-select: text; user-select: text;
+}
+#settingsPanel summary { font-size: 13px; color: #7c8cba; padding: 4px 0; }
+#settingsPanel label { display: flex; align-items: center; gap: 8px; font-size: 13px; margin: 6px 0; }
+#settingsPanel .note { font-size: 12px; color: #66779f; }
+.kbtn {
+  padding: 11px 0; font-size: 15px; border-radius: 10px;
+  background: #1a2030; border: 1px solid #2a3350; color: #e6e9ef; touch-action: none;
+}
+.kbtn:active, .kbtn.held { background: #3a5bd9; }
+footer { padding: 6px 12px 10px; font-size: 12px; color: #66779f; }
