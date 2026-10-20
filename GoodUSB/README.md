@@ -21,13 +21,56 @@ flowchart LR
 
 ## Quickstart
 
-1. Flash: `pio run -t upload && pio run -t uploadfs` (PlatformIO, board `esp32-s3-devkitc-1`).
-2. Plug the ESP32-S3 **native USB port** (not the UART port) into the PC.
-3. First boot: the LED pulses blue for 60 s — the pairing window.
-4. Join the device to your Wi-Fi (set `src/secrets.h` before first flash, or
-   rename/re-network later from the app once connected), then open
-   `http://goodusb.local` on your phone (same Wi-Fi).
-5. Create a 4–8 digit PIN in the app. Done — this phone is now the controller.
+1. Set Wi-Fi for the first flash: `cp src/secrets.example.h src/secrets.h`
+   and put your 2.4 GHz home Wi-Fi in `src/secrets.h` (gitignored).
+2. Flash: `pio run -t upload && pio run -t uploadfs` (PlatformIO, board `esp32-s3-devkitc-1`).
+3. Plug the ESP32-S3 **native USB port** (not the UART port) into the PC.
+4. First boot: the LED pulses blue for 60 s — the pairing window.
+5. On your phone (same Wi-Fi) open `http://goodusb.local` and create a
+   4–8 digit PIN. Done — this phone is now the controller.
+
+## Usage
+
+**Connect.** Open `http://goodusb.local` (or the device IP shown in the
+footer) in Safari/Chrome on the same Wi-Fi. The header shows connection
+state, your role, and round-trip latency. Green dot = you control the
+screen. If the page loads but says *offline*, check the LED (below) and
+that phone and device share one network.
+
+**Pair once.** First visit asks you to create a PIN while the LED pulses
+blue. Later visits authenticate automatically with a stored token — no PIN
+typing. Lost the phone or using a new one? Choose *Unlock*, enter the PIN,
+and the old phone's token stops working.
+
+**Drive the mouse.**
+- **Touchpad:** drag to move (speed-sensitive acceleration), tap = left
+  click, two-finger tap = right click, two-finger drag = scroll.
+- **Joystick mode:** toggle *Mode*, then hold and tilt — cursor keeps
+  moving while you hold. Good for couches and TVs.
+- **Buttons:** Left / Mid / Right can be held (hold Left + drag = select).
+- **Scroll strip:** the narrow bar on the right — drag up/down to scroll.
+- **Sliders:** Sensitivity and Acceleration are saved per phone.
+
+**Pick a template.** The template picker swaps the shortcut panel under
+the mouse buttons: *PC Desktop*, *Presentation*, *Media/TV*, or *Phone*.
+Your last pick is remembered on that phone.
+
+**Share or take over.** A second paired phone connects as *observer* and
+can watch latency/status; tap **Take over** to become the controller (the
+previous controller's held buttons are released instantly — nothing gets
+stuck).
+
+**Keep awake.** *Keep awake* prevents the phone screen from sleeping while
+you present or watch.
+
+**Change settings.** *Device settings* (controller only): rename the
+device (changes its USB name and `name.local` address), change Wi-Fi, or
+open a fresh pairing window for another phone. Saved to the device and
+applied on restart.
+
+**If something is stuck.** Close the tab, lock the phone, or unplug the
+device: any disconnect releases all mouse buttons and keys automatically,
+and a 4 s silence watchdog does the same on Wi-Fi drops.
 
 ## Security (trusted-LAN model)
 
