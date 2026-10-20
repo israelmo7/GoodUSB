@@ -22,7 +22,9 @@ void setup() {
   GU_LOG("GoodUSB '%s' booting (USB HID on native port GPIO19/20)",
          settings::deviceName().c_str());
 
-  hid::begin(settings::deviceName());
+  hid::begin(settings::deviceName(), settings::tplMouseOnly());
+  GU_LOG("active template '%s' (%s HID)", settings::tplName().c_str(),
+         settings::tplMouseOnly() ? "mouse-only" : "full");
 #if GOODUSB_BOOT_SELF_TEST
   // Dev-only Phase 1 check; OFF by default — a product must never click
   // things on the host just because it was plugged in.

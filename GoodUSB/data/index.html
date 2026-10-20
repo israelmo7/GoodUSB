@@ -57,8 +57,33 @@
   <section id="templateBar" class="row">
     <label for="templateSel">Template</label>
     <select id="templateSel"></select>
+    <button id="tplApply" class="pill btn">Apply</button>
   </section>
+  <div id="tplActive" class="note">Active on device: —</div>
   <section id="templatePanel"></section>
+
+  <details id="tplEditor">
+    <summary>Edit template</summary>
+    <label>Name <input id="teName" type="text" maxlength="32"></label>
+    <label>USB mode
+      <select id="teUsb">
+        <option value="mouse">Simple mouse only</option>
+        <option value="full">Mouse + shortcuts/media</option>
+      </select>
+    </label>
+    <div id="teButtons"></div>
+    <div class="row">
+      <button id="teAdd" class="pill btn">+ Button</button>
+      <button id="teSave" class="pill btn">Save</button>
+      <button id="teClone" class="pill btn">Clone</button>
+      <button id="teDelete" class="pill btn">Delete</button>
+      <button id="teFactory" class="pill btn">Factory reset</button>
+    </div>
+    <p class="note">Editing is instant and local. <strong>Apply</strong> sends the
+    template to the device, which saves it and restarts — USB re-enumerates
+    (~10 s). Button value = HID key usage (0x52), consumer usage (0x00E9),
+    or mouse bit (1/2/4). Mod bits: Ctrl 1, Shift 2, Alt 4, Win/Cmd 8.</p>
+  </details>
 
   <details id="settingsPanel">
     <summary>Device settings</summary>

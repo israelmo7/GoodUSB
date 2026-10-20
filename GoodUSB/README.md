@@ -91,13 +91,25 @@ Amber boot · **blue pulse pairing** · yellow blink Wi-Fi connecting ·
 green dim ready · green controller connected · white flash input ·
 red blink error.
 
-## Templates
+## Templates (editable device profiles)
 
-Preset shortcut panels picked in the app (mouse pad is always present):
-**PC Desktop** (arrows, Enter/Esc, Alt+Tab, Desktop, media), **Presentation**
-(prev/next slide, Start, Black), **Media/TV** (OK, Back, Home, Play/Pause,
-volume), **Phone** (Back, Home, media). Shortcuts use HID keyboard/media
-reports under the hood — there is deliberately no typing keyboard.
+Templates are **data, not hardcoded UI**. Each template defines its shortcut
+buttons *and* its USB personality, and lives in two places: your editable
+library on the phone, and the one **active profile stored on the device**.
+
+- **PC** (factory default): simple mouse only — one plain HID mouse
+  interface, maximum compatibility. No shortcut buttons.
+- **Presentation**, **Media/TV**, **Phone**: full HID (mouse + shortcut keys
+  + media) with their button sets.
+
+Every template can be edited, cloned, or deleted in *Edit template*
+(name, USB mode, buttons: label + key/media/mouse action). Editing is
+instant and local. **Apply** sends the template to the device, which saves
+it to NVS and **restarts immediately** — USB re-enumerates in the new
+personality (~10 s, watch the LED). After reconnect, the app renders
+whatever profile the device reports as active, so any paired phone sees
+the same device. There is deliberately no typing keyboard; shortcuts use
+HID key/media reports under the hood (full mode only).
 
 ## Settings (trust the user)
 

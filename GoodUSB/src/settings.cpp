@@ -10,6 +10,9 @@ String devName = GOODUSB_DEVICE_NAME;
 String host = GOODUSB_HOSTNAME;
 String ssid;
 String pass;
+String tplName_ = "PC";
+bool tplMouse_ = true;
+String tplBtns_ = "[]";
 }  // namespace
 
 namespace settings {
@@ -32,6 +35,9 @@ void begin() {
   host = prefs.getString("hostname", slugify(devName));
   ssid = prefs.getString("ssid", "");
   pass = prefs.getString("wpass", "");
+  tplName_ = prefs.getString("tpl_name", "PC");
+  tplMouse_ = prefs.getBool("tpl_mouse", true);
+  tplBtns_ = prefs.getString("tpl_btns", "[]");
   prefs.end();
 }
 
@@ -48,6 +54,23 @@ bool saveDeviceName(const String &name) {
   prefs.begin("goodusb", false);
   prefs.putString("devname", devName);
   prefs.putString("hostname", host);
+  prefs.end();
+  return true;
+}
+
+String tplName() { return tplName_; }
+bool tplMouseOnly() { return tplMouse_; }
+String tplButtons() { return tplBtns_; }
+
+bool saveTemplate(const String &name, bool mouseOnly, const String &buttonsJson) {
+  String n = name; n.trim();
+  if (!n.length() || n.length() > 32) return false;
+  if (buttonsJson.length() > 1800) return false;
+  tplName_ = n; tplMouse_ = mouseOnly; tplBtns_ = buttonsJson;
+  prefs.begin("goodusb", false);
+  prefs.putString("tpl_name", tplName_);
+  prefs.putBool("tpl_mouse", tplMouse_);
+  prefs.putString("tpl_btns", tplBtns_);
   prefs.end();
   return true;
 }

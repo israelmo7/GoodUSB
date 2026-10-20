@@ -65,6 +65,17 @@ main { flex: 1; display: flex; flex-direction: column; gap: 8px; padding: 6px 12
   background: #141a29; color: #e6e9ef; font-size: 15px;
 }
 #templatePanel { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+#tplActive { font-size: 12px; color: #66779f; }
+#tplEditor summary { font-size: 13px; color: #7c8cba; padding: 4px 0; }
+#tplEditor label { display: flex; align-items: center; gap: 8px; font-size: 13px; margin: 6px 0; }
+#tplEditor input, #tplEditor select {
+  flex: 1; min-width: 0; padding: 9px; border-radius: 10px; border: 1px solid #2a3350;
+  background: #141a29; color: #e6e9ef; font-size: 15px;
+  -webkit-user-select: text; user-select: text;
+}
+.te-row { margin: 4px 0; }
+.te-row .te-label { flex: 2; } .te-row .te-val { flex: 1; } .te-row .te-mod { flex: 0 0 44px; }
+#tplEditor .note { font-size: 12px; color: #66779f; }
 .panel {
   margin: 6px 12px 0; padding: 10px 12px; border-radius: 12px;
   background: #14202e; border: 1px solid #2a5a80; font-size: 14px;

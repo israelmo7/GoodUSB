@@ -13,4 +13,11 @@ String wifiPass();
 bool saveDeviceName(const String &name);          // also derives hostname
 bool saveWifi(const String &ssid, const String &pass);
 String slugify(const String &name);
+// Active template (device profile). Applied via app "applytemplate", stored
+// here, takes effect after the firmware restarts and USB re-enumerates.
+// Default is a mouse-only "PC" profile: simple HID for maximum compatibility.
+String tplName();          // e.g. "PC"
+bool tplMouseOnly();       // true: mouse interface only; false: full composite
+String tplButtons();       // buttons JSON array, verbatim as validated
+bool saveTemplate(const String &name, bool mouseOnly, const String &buttonsJson);
 }  // namespace settings

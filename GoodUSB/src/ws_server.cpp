@@ -178,15 +178,17 @@ void onWsEvent(AsyncWebSocket *srv, AsyncWebSocketClient *client,
   switch (type) {
     case WS_EVT_CONNECT: {
       Session *s = sessionFor(client->id(), true);
-      char buf[224];
-      snprintf(buf, sizeof(buf),
-               "{\"type\":\"hello\",\"paired\":%s,\"pairing\":%s,"
-               "\"pairing_left_s\":%u,\"device\":\"%s\",\"hostname\":\"%s\"}",
-               auth::isPaired() ? "true" : "false",
-               auth::pairingOpen() ? "true" : "false",
-               (unsigned)(auth::pairingLeftMs() / 1000),
-               settings::deviceName().c_str(), settings::hostname().c_str());
-      client->text(buf);
+      String hello = "{\"type\":\"hello\",\"paired\":";
+      hello += auth::isPaired() ? "true" : "false";
+      hello += ",\"pairing\":";
+      hello += auth::pairingOpen() ? "true" : "false";
+      hello += ",\"pairing_left_s\":" + String(auth::pairingLeftMs() / 1000);
+      hello += ",\"device\":\"" + settings::deviceName() + "\"";
+      hello += ",\"hostname\":\"" + settings::hostname() + "\"";
+      hello += ",\"profile\":{\"name\":\"" + settings::tplName() +
+               "\",\"usb\":\"" + (settings::tplMouseOnly() ? "mouse" : "full") +
+               "\",\"buttons\":" + settings::tplButtons() + "}}";
+      client->text(hello);
       if (s) sendChallenge(client, s);
       GU_LOG("ws connect id=%u clients=%u", (unsigned)client->id(),
              (unsigned)ws.count());
@@ -278,6 +280,30 @@ void onWsEvent(AsyncWebSocket *srv, AsyncWebSocketClient *client,
                        settings::hostname() + "\",\"ssid\":\"" +
                        settings::wifiSsid() + "\"}";
           client->text(out);
+        } else if (typeField == "applytemplate" && client->id() == controllerId) {
+          // Editable template -> device profile. Extract the buttons array
+          // verbatim; light validation only (count/size), actions are still
+          // constrained by the opcode handlers below.
+          String name, usb, btns;
+          jsonStr(msg, "name", name);
+          jsonStr(msg, "usb", usb);
+          int bpos = msg.indexOf("\"buttons\"");
+          int lb = bpos >= 0 ? msg.indexOf('[', bpos) : -1;
+          int rb = lb >= 0 ? msg.lastIndexOf(']') : -1;
+          if (lb >= 0 && rb > lb) btns = msg.substring(lb, rb + 1);
+          uint8_t btnCount = 0;
+          for (int i = 0; btns.indexOf("\"label\"", i) >= 0; i = btns.indexOf("\"label\"", i) + 1) btnCount++;
+          bool ok = btns.length() && btnCount <= 24 &&
+                    settings::saveTemplate(name, usb == "mouse", btns);
+          if (ok) {
+            HidEvent ev{}; ev.type = EV_RELEASE_ALL; enqueue(ev);
+            client->text("{\"type\":\"template_saved\",\"restart\":true}");
+            GU_LOG("template applied: '%s' usb=%s buttons=%u, restarting",
+                   name.c_str(), usb.c_str(), (unsigned)btnCount);
+            restartAt = millis() + 800;   // reply first, then re-enumerate
+          } else {
+            client->text("{\"type\":\"template_fail\"}");
+          }
         } else if (typeField == "settings" && client->id() == controllerId) {
           String v; bool changed = false;
           if (jsonStr(msg, "device", v)) changed |= settings::saveDeviceName(v);
@@ -313,6 +339,10 @@ void onWsEvent(AsyncWebSocket *srv, AsyncWebSocketClient *client,
       if (client->id() != controllerId) { dropped = dropped + 1; return; }
       lastControllerSeen = millis();
       silenceLatched = false;
+      // Simple-HID profile has no keyboard/consumer interfaces to send to.
+      if (settings::tplMouseOnly() && (op == OP_KEY || op == OP_CONSUMER)) {
+        dropped = dropped + 1; return;
+      }
 
       HidEvent e{};
       switch (op) {
@@ -360,12 +390,12 @@ void begin() {
   ws.onEvent(onWsEvent);
   server.addHandler(&ws);
   server.on("/api/health", HTTP_GET, [](AsyncWebServerRequest *req) {
-    char buf[320];
+    char buf[384];
     snprintf(buf, sizeof(buf),
              "{\"uptime_ms\":%u,\"rssi\":%d,\"ip\":\"%s\",\"hid_ready\":%s,"
              "\"clients\":%u,\"controller\":%s,\"dropped\":%u,\"reports\":%u,"
              "\"heap\":%u,\"coalesce_ms\":%d,\"paired\":%s,\"pairing\":%s,"
-             "\"device\":\"%s\",\"hostname\":\"%s\"}",
+             "\"device\":\"%s\",\"hostname\":\"%s\",\"template\":\"%s\",\"usb\":\"%s\"}",
              (unsigned)millis(), (int)wifiMgr::rssi(),
              wifiMgr::ip().c_str(), hid::isReady() ? "true" : "false",
              (unsigned)ws.count(), controllerId ? "true" : "false",
@@ -373,7 +403,9 @@ void begin() {
              (unsigned)ESP.getFreeHeap(), (int)GOODUSB_COALESCE_MS,
              auth::isPaired() ? "true" : "false",
              auth::pairingOpen() ? "true" : "false",
-             settings::deviceName().c_str(), settings::hostname().c_str());
+             settings::deviceName().c_str(), settings::hostname().c_str(),
+             settings::tplName().c_str(),
+             settings::tplMouseOnly() ? "mouse" : "full");
     req->send(200, "application/json", buf);
   });
   server.serveStatic("/", LittleFS, "/")

@@ -55,7 +55,11 @@ int8_t clampChunk(int16_t v) { return (int8_t)max(-127, min(127, (int)v)); }
 
 namespace hid {
 
-void begin(const String &productName) {
+bool mouseOnlyFlag = false;
+bool mouseOnlyMode() { return mouseOnlyFlag; }
+
+void begin(const String &productName, bool mouseOnly) {
+  mouseOnlyFlag = mouseOnly;
   USB.onEvent([](void *, esp_event_base_t base, int32_t id, void *) {
     if (base != ARDUINO_USB_EVENTS) return;
     if (id == ARDUINO_USB_STARTED_EVENT || id == ARDUINO_USB_RESUME_EVENT)
@@ -64,13 +68,17 @@ void begin(const String &productName) {
     // SUSPEND: host may sleep; reports are dropped by TinyUSB until RESUME.
   });
   USB.VID(0x303A);          // Espressif dev VID; pick your own for production
-  USB.PID(0x4001);
+  // Distinct PID per personality so hosts don't reuse cached descriptors
+  // after a template switch (mouse-only <-> full composite).
+  USB.PID(mouseOnly ? 0x4002 : 0x4001);
   USB.productName(productName.c_str());
   USB.manufacturerName("GoodUSB");
   USB.firmwareVersion(0x0100);
   Mouse.begin();
-  Keyboard.begin();
-  ConsumerControl.begin();
+  if (!mouseOnly) {         // simple-HID profile: one mouse interface, done
+    Keyboard.begin();
+    ConsumerControl.begin();
+  }
   USB.begin();
 }
 
@@ -99,6 +107,7 @@ uint8_t buttonMask() { return currentMask; }
 bool anyHeld() { return currentMask != 0 || pressedCount != 0 || heldConsumer != 0; }
 
 void keyEvent(uint8_t mod, uint8_t key, bool down) {
+  if (mouseOnlyFlag) return;
   if (down) {
     applyMod(mod, true);
     if (key && trackDown(key)) Keyboard.pressRaw(key);
@@ -109,6 +118,7 @@ void keyEvent(uint8_t mod, uint8_t key, bool down) {
 }
 
 void consumerEvent(uint16_t usage, bool down) {
+  if (mouseOnlyFlag) return;
   if (down) {
     if (heldConsumer && heldConsumer != usage) ConsumerControl.release();
     heldConsumer = usage;

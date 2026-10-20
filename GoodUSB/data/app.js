@@ -159,7 +159,23 @@ function connect() {
     if (typeof ev.data === 'string') {
       let m; try { m = JSON.parse(ev.data); } catch { return; }
       switch (m.type) {
-        case 'hello': onHello(m); break;
+        case 'hello':
+          onHello(m);
+          if (m.profile) {
+            activeProfile = m.profile;
+            renderButtons(activeProfile.buttons || []);
+            $('#tplActive').textContent =
+              `Active on device: ${activeProfile.name} (${activeProfile.usb === 'mouse' ? 'simple mouse' : 'full HID'})`;
+            refreshTplSelect(activeProfile.name);
+            renderEditor();
+          }
+          break;
+        case 'template_saved':
+          $('#health').textContent = 'Template saved on device — restarting, reconnecting…';
+          break;
+        case 'template_fail':
+          $('#health').textContent = 'Device rejected the template (name/size/buttons).';
+          break;
         case 'challenge':
           if (token) sendText({ type: 'auth', proof: sha256Hex(sha256Hex(token) + ':' + m.nonce) });
           else showPair('unlock', 'Unlock this phone', 'Enter the PIN to give this phone a token.');
@@ -342,18 +358,8 @@ document.querySelectorAll('.mbtn').forEach((el) => {
    kind consumer: HID consumer usage. kind mouse: mouse button bit. */
 const MOD = { CTRL: 0x01, SHIFT: 0x02, ALT: 0x04, GUI: 0x08 };
 const TEMPLATES = {
-  pc: { label: 'PC Desktop', buttons: [
-    { label: '▲', kind: 'key', key: 0x52 }, { label: '▼', kind: 'key', key: 0x51 },
-    { label: '◀', kind: 'key', key: 0x50 }, { label: '▶', kind: 'key', key: 0x4f },
-    { label: 'Enter', kind: 'key', key: 0x28 }, { label: 'Esc', kind: 'key', key: 0x29 },
-    { label: 'Alt+Tab', kind: 'key', key: 0x2b, mod: MOD.ALT },
-    { label: 'Desktop', kind: 'key', key: 0x07, mod: MOD.GUI },
-    { label: '⏯', kind: 'consumer', usage: 0x00cd },
-    { label: 'Vol−', kind: 'consumer', usage: 0x00ea },
-    { label: 'Vol+', kind: 'consumer', usage: 0x00e9 },
-    { label: 'Mute', kind: 'consumer', usage: 0x00e2 },
-  ]},
-  presentation: { label: 'Presentation', buttons: [
+  pc: { label: 'PC', usb: 'mouse', buttons: [] },   // simple mouse, nothing else
+  presentation: { label: 'Presentation', usb: 'full', buttons: [
     { label: '◀ Prev', kind: 'key', key: 0x4b }, { label: 'Next ▶', kind: 'key', key: 0x4e },
     { label: 'Start', kind: 'key', key: 0x4a }, { label: 'Esc', kind: 'key', key: 0x29 },
     { label: 'Black (B)', kind: 'key', key: 0x05 }, { label: 'Enter', kind: 'key', key: 0x28 },
@@ -361,7 +367,7 @@ const TEMPLATES = {
     { label: 'Vol−', kind: 'consumer', usage: 0x00ea },
     { label: 'Vol+', kind: 'consumer', usage: 0x00e9 },
   ]},
-  media: { label: 'Media / TV', buttons: [
+  media: { label: 'Media / TV', usb: 'full', buttons: [
     { label: '▲', kind: 'key', key: 0x52 }, { label: '▼', kind: 'key', key: 0x51 },
     { label: '◀', kind: 'key', key: 0x50 }, { label: '▶', kind: 'key', key: 0x4f },
     { label: 'OK', kind: 'key', key: 0x28 }, { label: 'Esc', kind: 'key', key: 0x29 },
@@ -374,7 +380,7 @@ const TEMPLATES = {
     { label: 'Vol−', kind: 'consumer', usage: 0x00ea },
     { label: 'Vol+', kind: 'consumer', usage: 0x00e9 },
   ]},
-  phone: { label: 'Phone', buttons: [
+  phone: { label: 'Phone', usb: 'full', buttons: [
     { label: '▲', kind: 'key', key: 0x52 }, { label: '▼', kind: 'key', key: 0x51 },
     { label: '◀', kind: 'key', key: 0x50 }, { label: '▶', kind: 'key', key: 0x4f },
     { label: 'Enter', kind: 'key', key: 0x28 }, { label: 'Esc', kind: 'key', key: 0x29 },
@@ -393,11 +399,24 @@ function bindHold(el, down, up) {
   el.addEventListener('pointercancel', () => { end(); releaseAll(); });
   el.addEventListener('lostpointercapture', end);
 }
-function renderTemplate(id) {
-  const t = TEMPLATES[id] || TEMPLATES.pc;
+/* Editable template library. Factory defaults are only starting points:
+   the library lives in localStorage ('gu.tpllib') and every entry can be
+   edited/cloned/deleted. The ACTIVE profile lives on the device (NVS):
+   Apply sends it over, the ESP saves it and restarts (USB re-enumerates),
+   and on reconnect the device reports its active profile in "hello",
+   which is what the button panel renders. */
+const FACTORY_TEMPLATES = JSON.parse(JSON.stringify(TEMPLATES));
+let tplLib;
+try { tplLib = JSON.parse(localStorage.getItem('gu.tpllib')) || null; } catch { tplLib = null; }
+if (!tplLib || !Object.keys(tplLib).length) tplLib = JSON.parse(JSON.stringify(FACTORY_TEMPLATES));
+let activeProfile = { name: 'PC', usb: 'mouse', buttons: [] };
+
+function saveLib() { localStorage.setItem('gu.tpllib', JSON.stringify(tplLib)); }
+function renderButtons(buttons) {
   const panel = $('#templatePanel');
   panel.innerHTML = '';
-  for (const b of t.buttons) {
+  panel.style.display = buttons.length ? '' : 'none';
+  for (const b of buttons) {
     const el = document.createElement('button');
     el.className = 'kbtn';
     el.textContent = b.label;
@@ -407,19 +426,100 @@ function renderTemplate(id) {
     panel.appendChild(el);
   }
 }
-const templateSel = $('#templateSel');
-for (const [id, t] of Object.entries(TEMPLATES)) {
-  const o = document.createElement('option');
-  o.value = id; o.textContent = t.label;
-  templateSel.appendChild(o);
+function refreshTplSelect(selectedName) {
+  const sel = $('#templateSel');
+  sel.innerHTML = '';
+  for (const t of Object.values(tplLib)) {
+    const o = document.createElement('option');
+    o.value = t.label; o.textContent = t.label;
+    sel.appendChild(o);
+  }
+  if (selectedName && tplLib[slug(selectedName)]) sel.value = tplLib[slug(selectedName)].label;
 }
-templateSel.value = TEMPLATES[localStorage.getItem('gu.template')] ? localStorage.getItem('gu.template') : 'pc';
-renderTemplate(templateSel.value);
-templateSel.addEventListener('change', () => {
-  localStorage.setItem('gu.template', templateSel.value);
-  renderTemplate(templateSel.value);
+function slug(s) { return s.toLowerCase().replace(/[^a-z0-9]+/g, '-'); }
+function selectedTpl() { return tplLib[slug($('#templateSel').value)] || Object.values(tplLib)[0]; }
+
+function renderEditor() {
+  const t = selectedTpl();
+  if (!t) return;
+  $('#teName').value = t.label;
+  $('#teUsb').value = t.usb || 'full';
+  const box = $('#teButtons');
+  box.innerHTML = '';
+  (t.buttons || []).forEach((b) => {
+    const row = document.createElement('div');
+    row.className = 'row te-row';
+    const val = b.kind === 'key' ? b.key : b.kind === 'consumer' ? b.usage : b.btn;
+    row.innerHTML =
+      `<input class="te-label" value="${b.label}" maxlength="12">` +
+      `<select class="te-kind"><option value="key">key</option><option value="consumer">media</option><option value="mouse">mouse</option></select>` +
+      `<input class="te-val" value="0x${(val || 0).toString(16)}">` +
+      `<input class="te-mod" value="${b.mod || 0}" title="mod bits">` +
+      `<button class="pill btn te-del" type="button">✕</button>`;
+    row.querySelector('.te-kind').value = b.kind;
+    box.appendChild(row);
+  });
+}
+function readEditor() {
+  const buttons = [];
+  document.querySelectorAll('.te-row').forEach((row) => {
+    const kind = row.querySelector('.te-kind').value;
+    const val = parseInt(row.querySelector('.te-val').value) || 0;
+    const b = { label: row.querySelector('.te-label').value || '?', kind };
+    if (kind === 'key') { b.key = val; b.mod = parseInt(row.querySelector('.te-mod').value) || 0; }
+    else if (kind === 'consumer') b.usage = val;
+    else b.btn = val;
+    buttons.push(b);
+  });
+  return { label: $('#teName').value.trim() || 'Template', usb: $('#teUsb').value, buttons };
+}
+$('#templateSel').addEventListener('change', () => { renderEditor(); buzz(); });
+$('#teAdd').addEventListener('click', () => {
+  const t = selectedTpl();
+  t.buttons = t.buttons || [];
+  t.buttons.push({ label: 'New', kind: 'key', key: 0x28 });
+  saveLib(); renderEditor();
+});
+document.addEventListener('click', (e) => {
+  if (!e.target.classList?.contains('te-del')) return;
+  const t = readEditor();
+  const idx = [...document.querySelectorAll('.te-del')].indexOf(e.target);
+  t.buttons.splice(idx, 1);
+  tplLib[slug(t.label)] = t; saveLib(); renderEditor();
+});
+$('#teSave').addEventListener('click', () => {
+  const t = readEditor();
+  const old = selectedTpl();
+  if (old && slug(old.label) !== slug(t.label)) delete tplLib[slug(old.label)];
+  tplLib[slug(t.label)] = t;
+  saveLib(); refreshTplSelect(t.label); renderEditor();
+  $('#health').textContent = `Template "${t.label}" saved locally. Tap Apply to send it to the device.`;
+});
+$('#teClone').addEventListener('click', () => {
+  const t = readEditor();
+  t.label = t.label + ' copy';
+  tplLib[slug(t.label)] = t;
+  saveLib(); refreshTplSelect(t.label); renderEditor();
+});
+$('#teDelete').addEventListener('click', () => {
+  const t = selectedTpl();
+  if (!t || Object.keys(tplLib).length <= 1) return;
+  delete tplLib[slug(t.label)];
+  saveLib(); refreshTplSelect(); renderEditor();
+});
+$('#teFactory').addEventListener('click', () => {
+  tplLib = JSON.parse(JSON.stringify(FACTORY_TEMPLATES));
+  saveLib(); refreshTplSelect('PC Desktop'); renderEditor();
+});
+$('#tplApply').addEventListener('click', () => {
+  const t = readEditor();   // apply exactly what is shown in the editor
+  sendText({ type: 'applytemplate', name: t.label, usb: t.usb, buttons: t.buttons });
+  $('#health').textContent = `Applying "${t.label}" — device restarting, USB re-enumerating…`;
   buzz();
 });
+refreshTplSelect('PC');
+renderEditor();
+renderButtons(activeProfile.buttons);
 
 /* ---------- device settings (controller only, server enforces) ---------- */
 $('#setSave').addEventListener('click', () => {

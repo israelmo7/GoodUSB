@@ -6,7 +6,8 @@
 // All functions are safe to call before the host enumerates (they no-op
 // or queue state that is applied to reports once mounted).
 namespace hid {
-void begin(const String &productName);
+void begin(const String &productName, bool mouseOnly);
+bool mouseOnlyMode();
 bool isReady();              // host has enumerated / USB mounted
 void move(int16_t dx, int16_t dy, int8_t wheel);  // chunked to int8 reports
 void setButtons(uint8_t mask);                    // full-state, diffed
